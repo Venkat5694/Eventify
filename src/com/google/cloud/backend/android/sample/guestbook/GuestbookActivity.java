@@ -13,22 +13,30 @@
  */
 package com.google.cloud.backend.android.sample.guestbook;
 
+import android.app.AlertDialog;
+import android.app.DownloadManager.Query;
+import android.content.DialogInterface;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.google.android.gms.maps.model.TileOverlay;
 import com.google.cloud.backend.android.CloudBackendActivity;
 import com.google.cloud.backend.android.CloudCallbackHandler;
 import com.google.cloud.backend.android.CloudEntity;
+import com.google.cloud.backend.android.CloudQuery;
 import com.google.cloud.backend.android.CloudQuery.Order;
 import com.google.cloud.backend.android.CloudQuery.Scope;
+import com.google.cloud.backend.android.F;
 import com.google.cloud.backend.android.R;
 
 import java.io.IOException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
@@ -62,9 +70,137 @@ public class GuestbookActivity extends CloudBackendActivity {
     tvPosts = (TextView) findViewById(R.id.tvPosts);
     etMessage = (EditText) findViewById(R.id.etMessage);
     btSend = (Button) findViewById(R.id.btSend);
+    //initdb();
   }
 
-  @Override
+  private void initdb() {
+	  F filter = new F();
+	  filter = F.eq("ids", "CE:1a0c351d-8b6d-4091-882f-f5665104b069");
+	  initUser();
+	//CloudEntity users = new CloudEntity("users");
+	CloudQuery cq = new CloudQuery("Users");
+	
+	cq.setFilter(filter);
+	CloudCallbackHandler<List<CloudEntity>> qhandler = new CloudCallbackHandler<List<CloudEntity>>(){
+
+		@Override
+		public void onComplete(List<CloudEntity> result) {
+			// TODO Auto-generated method stub
+		
+			Toast.makeText(getApplicationContext(), "Complete " + result.size(), Toast.LENGTH_SHORT).show();
+			for(CloudEntity res : result){
+				StringBuilder sb = new StringBuilder();
+				Toast.makeText(getApplicationContext(), 
+					sb.append(res.getId()), Toast.LENGTH_SHORT).show();
+			}
+		
+		}
+
+		@Override
+		public void onError(IOException exception) {
+			// TODO Auto-generated method stub
+			super.onError(exception);
+			Toast.makeText(getApplicationContext(), "Failed", Toast.LENGTH_LONG).show();
+			
+		}
+		
+	};
+	getCloudBackend().list(cq, qhandler );
+	
+	//Toast.makeText(getApplicationContext(), "Running", Toast.LENGTH_LONG).show();
+	/*try {
+	CloudEntity	result = getCloudBackend().get("users", "CE:1468e3d3-8c69-46ce-abc2-0b76bfea3de5");
+	Toast.makeText(getApplicationContext(), result.toString(), Toast.LENGTH_LONG).show();
+	Log.i("USER", result.toString());
+	} catch (IOException e) {
+		// TODO Auto-generated catch block
+		Toast.makeText(getApplicationContext(), "Failed", Toast.LENGTH_LONG).show();
+		Log.i("USER", "FAILED");
+		e.printStackTrace();
+	}*/
+	/*users.put("g_id","");
+	users.put("my_eventd","");
+	users.put("invited_events","");
+	CloudCallbackHandler<CloudEntity> handler = new CloudCallbackHandler<CloudEntity>() {
+
+		@Override
+		public void onComplete(CloudEntity results) {
+			// TODO Auto-generated method stub
+			
+		}
+		
+	};
+	getCloudBackend().insert(users, handler);
+	CloudEntity events = new CloudEntity("events");
+	events.put("title","");
+	events.put("place_id","");
+	events.put("invite_id","");
+	CloudCallbackHandler<CloudEntity> ehandler = new CloudCallbackHandler<CloudEntity>() {
+
+		@Override
+		public void onComplete(CloudEntity results) {
+			// TODO Auto-generated method stub
+			
+		}
+		
+	};
+	getCloudBackend().insert(events, ehandler);
+
+	CloudEntity places = new CloudEntity("places");
+	places.put("longi","");
+	places.put("lati", "");
+	places.put("address", "");
+	CloudCallbackHandler<CloudEntity> phandler = new CloudCallbackHandler<CloudEntity>() {
+
+		@Override
+		public void onComplete(CloudEntity results) {
+			// TODO Auto-generated method stub
+			
+		}
+		
+	};
+	getCloudBackend().insert(places, phandler);
+*/
+}
+
+private void initUser() {
+	// TODO Auto-generated method stub
+	CloudEntity users = new CloudEntity("Users");
+	users.put("g_id","123");
+	users.put("my_eventd","[12,34]");
+	users.put("invited_events","56,78");
+	CloudCallbackHandler<CloudEntity> handler = new CloudCallbackHandler<CloudEntity>() {
+
+		@Override
+		public void onComplete(CloudEntity results) {
+			// TODO Auto-generated method stub
+			results.put("ids", results.getId());
+			CloudCallbackHandler<CloudEntity> uphandler = new CloudCallbackHandler<CloudEntity>() {
+
+				@Override
+				public void onComplete(CloudEntity results) {
+					// TODO Auto-generated method stub
+					Toast.makeText(getApplicationContext(), "Updated", Toast.LENGTH_LONG).show();
+				}
+
+				@Override
+				public void onError(IOException exception) {
+					// TODO Auto-generated method stub
+					super.onError(exception);
+					
+				}
+				
+			};
+
+			getCloudBackend().update(results, uphandler);
+		}
+		
+	};
+	getCloudBackend().insert(users, handler);
+
+}
+
+@Override
   protected void onPostCreate() {
     super.onPostCreate();
     listAllPosts();
@@ -101,14 +237,22 @@ public class GuestbookActivity extends CloudBackendActivity {
   // convert posts into string and update UI
   private void updateGuestbookUI() {
     final StringBuilder sb = new StringBuilder();
+    
     for (CloudEntity post : posts) {
+    	//getPost(post.getId());
       sb.append(sdf.format(post.getCreatedAt()) + getCreatorName(post) + ": " + post.get("message")
-          + "\n");
+          + "\n"+ post.getId());
     }
     tvPosts.setText(sb.toString());
   }
 
-  // removing the domain name part from email address
+  private void getPost(String id) {
+	// TODO Auto-generated method stub
+	
+	    
+}
+
+// removing the domain name part from email address
   private String getCreatorName(CloudEntity b) {
     if (b.getCreatedBy() != null) {
       return " " + b.getCreatedBy().replaceFirst("@.*", "");
@@ -119,11 +263,15 @@ public class GuestbookActivity extends CloudBackendActivity {
 
   // post a new message to server
   public void onSendButtonPressed(View view) {
-
+	  initdb();
+	  List<String> lst = new ArrayList<String>();
+	  lst.add("Fucked to the core");
+	  lst.add("Don't give a heck");
+	  lst.add("about the bitch");
     // create a CloudEntity with the new post
     CloudEntity newPost = new CloudEntity("Guestbook");
     newPost.put("message", etMessage.getText().toString());
-
+    //newPost.put("values", lst);
     // create a response handler that will receive the result or an error
     CloudCallbackHandler<CloudEntity> handler = new CloudCallbackHandler<CloudEntity>() {
       @Override
